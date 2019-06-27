@@ -20,6 +20,8 @@ func TNode() *Node {
   if err != nil {
     panic(err)
   }
+
+  time.Sleep(time.Second)
   return n
 }
 
@@ -31,9 +33,14 @@ func TNodes(_ *testing.T, n int) []*Node {
     }()
   }
 
+  // wait for bootstrapping & latency gathering.
+  time.Sleep(3 * time.Second)
+
   ns := make([]*Node, n)
   for i := 0; i < n; i++ {
     ns[i] = <-ch
+    fmt.Printf("%d ", i) // no newline
+    PrintLatencyTable(ns[i].Host)
   }
   fmt.Printf("bootstrapped %d nodes\n", n)
   return ns
@@ -98,6 +105,7 @@ func TestFindPeer2(t *testing.T) {
         _, err = ns[0].DHT.FindPeer(BgCtx, ns[i].Host.ID())
       })
       if err != nil {
+        fmt.Printf("n0 failed to find n%d. %v\n", i, err)
         t.Errorf("n0 failed to find n%d. %v", i, err)
       }
       dsch <- d

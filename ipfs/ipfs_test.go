@@ -34,6 +34,8 @@ func TNodes(_ *testing.T, n int) []*Node {
   ns := make([]*Node, n)
   for i := 0; i < n; i++ {
     ns[i] = <-ch
+    np := len(ns[i].P2PHost.Peerstore().Peers())
+    fmt.Printf("%d connected to %d peers\n", i, np)
   }
   fmt.Printf("bootstrapped %d nodes\n", n)
   return ns

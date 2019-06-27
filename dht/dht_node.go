@@ -13,6 +13,7 @@ import (
   host "github.com/libp2p/go-libp2p-host"
   dht "github.com/libp2p/go-libp2p-kad-dht"
   record "github.com/libp2p/go-libp2p-record"
+  ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
 )
 
 var BootstrapAddrsStr = []string{
@@ -44,19 +45,44 @@ type Node struct {
   DHT  *dht.IpfsDHT
 }
 
+func (n *Node) Peers() []peer.ID {
+  return n.Host.Network().Peers()
+}
+
 func Bootstrap(n *Node) error {
+  ctx := context.Background()
+
   // grab two random bootstrap nodes
   idx := rand.Intn(len(BootstrapAddrs) - 1)
   ais := BootstrapAddrs[idx : idx+2]
 
   for _, ai := range ais {
-    err := n.Host.Connect(context.Background(), ai)
+    err := n.Host.Connect(ctx, ai)
     if err != nil {
       return err
     }
   }
 
-  return n.DHT.Bootstrap(context.Background())
+  err := n.DHT.Bootstrap(ctx)
+  if err != nil {
+    return err
+  }
+
+  // go do 5 RTTs
+  for _, p := range n.Peers() {
+    go func(p peer.ID) {
+      ctx, cancel := context.WithCancel(ctx)
+      defer cancel()
+
+      // do 5 RTTs before canceling
+      res := ping.Ping(ctx, n.Host, p)
+      for i := 0; i < 5; i++ {
+        <-res
+      }
+    }(p)
+  }
+
+  return nil
 }
 
 func NewNode() (*Node, error) {
@@ -84,7 +110,19 @@ func NewNode() (*Node, error) {
     "ipns": ipns.Validator{KeyBook: h.Peerstore()},
   }
 
+  // dont need to store it, only mount it
+  _ = ping.NewPingService(h)
+
   n := &Node{h, d}
   err = Bootstrap(n)
   return n, err
+}
+
+func PrintLatencyTable(h host.Host) {
+  ps := h.Network().Peers()
+  fmt.Printf("%v connected to %d peers\n", h.ID(), len(ps))
+  for i, p := range ps {
+    latency := h.Peerstore().LatencyEWMA(p)
+    fmt.Printf("%d %v %v\n", i, p, latency)
+  }
 }

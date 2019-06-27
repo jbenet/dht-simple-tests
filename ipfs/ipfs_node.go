@@ -4,6 +4,7 @@ import (
   "context"
 
   core "github.com/ipfs/go-ipfs/core"
+  bootstrap "github.com/ipfs/go-ipfs/core/bootstrap"
 )
 
 type Node = core.IpfsNode
@@ -18,6 +19,6 @@ func NewIpfsNode() (*Node, error) {
     return nil, err
   }
 
-  err = ipfs.Bootstrap(core.DefaultBootstrapConfig)
+  err = ipfs.Bootstrap(bootstrap.DefaultBootstrapConfig)
   return ipfs, err
 }
