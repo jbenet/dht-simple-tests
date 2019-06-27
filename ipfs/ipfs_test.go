@@ -1,4 +1,4 @@
-package dhttests
+package ipfstests
 
 import (
   "context"
@@ -16,7 +16,7 @@ func init() {
 }
 
 func TNode() *Node {
-  n, err := NewNode()
+  n, err := NewIpfsNode()
   if err != nil {
     panic(err)
   }
@@ -74,7 +74,7 @@ func TestFindPeer1(t *testing.T) {
   })
 
   Timed(t, "query", func() {
-    _, err = ns[0].DHT.FindPeer(BgCtx, ns[1].Host.ID())
+    _, err = ns[0].DHT.FindPeer(BgCtx, ns[1].Identity)
   })
 
   if err != nil {
@@ -85,7 +85,7 @@ func TestFindPeer1(t *testing.T) {
 func TestFindPeer2(t *testing.T) {
   var err error
   var ns []*Node
-  n := 25
+  n := 5
 
   Timed(t, "setup", func() {
     ns = TNodes(t, n)
@@ -95,7 +95,7 @@ func TestFindPeer2(t *testing.T) {
   for i := 1; i < n; i++ {
     go func(i int) {
       d := Timed(t, fmt.Sprintf("n0 -> n%d", i), func() {
-        _, err = ns[0].DHT.FindPeer(BgCtx, ns[i].Host.ID())
+        _, err = ns[0].DHT.FindPeer(BgCtx, ns[i].Identity)
       })
       if err != nil {
         t.Errorf("n0 failed to find n%d. %v", i, err)
